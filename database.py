@@ -79,12 +79,47 @@ class ExecutionHistoryDB:
             logger.error(f"添加执行记录失败: {e}", exc_info=True)
             raise
     
+    async def delete_execution_record(self, record_id: int) -> bool:
+        """删除单条执行记录"""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute("DELETE FROM execution_history WHERE id = ?", (record_id,))
+                await db.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"删除执行记录失败: {e}", exc_info=True)
+            raise
+
+    async def delete_execution_records(self, delete_type: str) -> int:
+        """批量删除执行记录
+        :param delete_type: 'all' (全部), 'success' (成功), 'fail' (失败)
+        :return: 删除的记录数量
+        """
+        try:
+            where_clause = ""
+            if delete_type == 'success':
+                where_clause = "WHERE success = 1"
+            elif delete_type == 'fail':
+                where_clause = "WHERE success = 0"
+            elif delete_type != 'all':
+                raise ValueError(f"无效的删除类型: {delete_type}")
+            
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(f"DELETE FROM execution_history {where_clause}")
+                await db.commit()
+                return cursor.rowcount
+        except Exception as e:
+            logger.error(f"批量删除执行记录失败: {e}", exc_info=True)
+            raise
+
     async def get_execution_history(self, 
                                   page: int = 1, 
                                   page_size: int = 20,
                                   sender_id: str = None,
                                   search_keyword: str = None,
-                                  success_filter: bool = None) -> Dict[str, Any]:
+                                  success_filter: bool = None,
+                                  start_time: str = None,
+                                  end_time: str = None) -> Dict[str, Any]:
         """获取执行历史记录（分页）"""
         try:
             offset = (page - 1) * page_size
@@ -105,6 +140,21 @@ class ExecutionHistoryDB:
             if success_filter is not None:
                 where_conditions.append("success = ?")
                 params.append(success_filter)
+
+            if start_time:
+                # 处理 HTML datetime-local 输入格式 (YYYY-MM-DDTHH:mm)
+                clean_start = start_time.replace('T', ' ')
+                if len(clean_start) == 16: # YYYY-MM-DD HH:mm
+                    clean_start += ':00'
+                where_conditions.append("created_at >= ?")
+                params.append(clean_start)
+            
+            if end_time:
+                clean_end = end_time.replace('T', ' ')
+                if len(clean_end) == 16:
+                    clean_end += ':59'
+                where_conditions.append("created_at <= ?")
+                params.append(clean_end)
             
             where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
             
