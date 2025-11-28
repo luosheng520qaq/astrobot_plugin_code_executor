@@ -7,6 +7,7 @@ import os
 import base64
 from datetime import datetime
 from typing import Dict, Any, List
+import re
 
 from astrbot.api.event import filter, AstrMessageEvent, MessageChain
 from astrbot.api.star import Context, Star, register, StarTools
@@ -35,11 +36,44 @@ class CodeExecutorPlugin(Star):
         self.enable_local_route_sending = self.config.get("enable_local_route_sending", False)
         self.local_route_host = self.config.get("local_route_host", "localhost")
         self.allow_all_users = self.config.get("allow_all_users", False)
+        self.non_admin_safety_enabled = self.config.get("non_admin_safety_enabled", True)
+
+        def _normalize_list_config(value, default):
+            try:
+                if isinstance(value, list):
+                    return [str(v).strip().lower() for v in value if str(v).strip()]
+                if isinstance(value, str):
+                    parts = [p.strip() for p in value.replace("\n", ",").split(",")]
+                    return [p.lower() for p in parts if p]
+                return [s.lower() for s in default]
+            except Exception:
+                return [s.lower() for s in default]
+
+        self.restricted_keywords = _normalize_list_config(
+            self.config.get("restricted_keywords"),
+            [
+                "os.system",
+                "subprocess",
+                "popen",
+                "shell=true",
+                "eval(",
+                "exec(",
+                "shutil.rmtree",
+                "os.remove(",
+                "os.rmdir("
+            ],
+        )
+        self.restricted_libraries = _normalize_list_config(
+            self.config.get("restricted_libraries"),
+            ["subprocess", "socket", "ctypes", "psutil", "paramiko"],
+        )
         
         # 错误分析相关配置
         self.enable_error_analysis = self.config.get("enable_error_analysis", False)
         self.error_analysis_provider_id = self.config.get("error_analysis_provider_id", "")
         self.error_analysis_model = self.config.get("error_analysis_model", "")
+
+
 
         # **[新功能]** 从配置文件读取输出目录
         configured_path = self.config.get("output_directory")
@@ -341,6 +375,30 @@ class CodeExecutorPlugin(Star):
         if not self.allow_all_users and event.role != "admin":
             await event.send(MessageChain().message("❌ 你没有权限使用此功能！"))
             return "❌ 权限验证失败：用户不是管理员，无权限运行代码。请联系管理员获取权限。操作已终止，无需重复尝试。"
+        if event.role != "admin" and self.non_admin_safety_enabled:
+            code_lower = code.lower() if isinstance(code, str) else str(code).lower()
+            matched = set()
+            for kw in self.restricted_keywords:
+                if kw and kw in code_lower:
+                    matched.add(kw)
+            for lib in self.restricted_libraries:
+                if not lib:
+                    continue
+                lib_l = lib.lower()
+                pattern_import = re.compile(r"^(\s*(import|from)\s+" + re.escape(lib_l) + r"\b)", re.IGNORECASE | re.MULTILINE)
+                if pattern_import.search(code):
+                    matched.add(lib_l)
+                if lib_l + "." in code_lower:
+                    matched.add(lib_l)
+            if matched:
+                details = "、".join(sorted(matched))
+                text = (
+                    "❌ 安全策略阻止执行：检测到非管理员代码包含危险操作或库。\n"
+                    f"被拦截项：{details}\n"
+                    "如需调整，请在插件配置的 `restricted_keywords` 或 `restricted_libraries` 中修改。"
+                )
+                await event.send(MessageChain().message(text))
+                return text
         logger.info(f"收到任务: {description or '无描述'}")
         logger.debug(f"代码内容:\n{code}")
         
@@ -354,7 +412,7 @@ class CodeExecutorPlugin(Star):
         logger.info(f"检测到 {len(img_urls)} 个图片URL: {img_urls}")
 
         try:
-            result = await self._execute_code_safely(code, img_urls)
+            result = await self._execute_code_safely(code, img_urls, is_admin=(event.role == "admin"))
             execution_time = time.time() - start_time
 
             if result["success"]:
@@ -542,8 +600,8 @@ class CodeExecutorPlugin(Star):
             # 返回详细的错误信息给LLM上下文
             return error_msg
 
-    async def _execute_code_safely(self, code: str, img_urls: List[str] = None) -> Dict[str, Any]:
-        def run_code(code_to_run: str, file_output_dir: str, image_urls: List[str] = None):
+    async def _execute_code_safely(self, code: str, img_urls: List[str] = None, is_admin: bool = True) -> Dict[str, Any]:
+        def run_code(code_to_run: str, file_output_dir: str, image_urls: List[str] = None, is_admin_flag: bool = True):
             old_stdout, old_stderr = sys.stdout, sys.stderr
             output_buffer, error_buffer = io.StringIO(), io.StringIO()
 
@@ -727,6 +785,9 @@ class CodeExecutorPlugin(Star):
                     'itertools': 'itertools', 'collections': 'collections', 
                     'functools': 'functools', 'operator': 'operator', 'copy': 'copy', 'uuid': 'uuid'
                 }
+                if not is_admin_flag and getattr(self, 'restricted_libraries', None):
+                    rl = set(self.restricted_libraries)
+                    libs_to_inject = {k: v for k, v in libs_to_inject.items() if k.lower() not in rl}
                 for lib_name, alias in libs_to_inject.items():
                     try:
                         lib = __import__(lib_name)
@@ -826,7 +887,7 @@ class CodeExecutorPlugin(Star):
         # 使用 asyncio.to_thread 替代 threading + queue，避免阻塞事件循环
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(run_code, code, self.file_output_dir, img_urls),
+                asyncio.to_thread(run_code, code, self.file_output_dir, img_urls, is_admin),
                 timeout=self.timeout_seconds
             )
             return result

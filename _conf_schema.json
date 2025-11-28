@@ -70,6 +70,24 @@
       "type": "string",
       "default": "",
       "hint": "指定用于错误分析的具体模型名称，留空则使用提供商的默认模型"
+    },
+    "non_admin_safety_enabled": {
+      "description": "非管理员安全拦截",
+      "type": "bool",
+      "default": true,
+      "hint": "非管理员调用函数工具时，基于关键词拦截危险操作"
+    },
+    "restricted_keywords": {
+      "description": "禁用关键词(逗号分隔)",
+      "type": "string",
+      "default": "os.system, subprocess, popen, shell=true, eval(, exec(, shutil.rmtree, os.remove(, os.rmdir(",
+      "hint": "匹配到即阻止执行；可用逗号或换行分隔"
+    },
+    "restricted_libraries": {
+      "description": "禁用库(逗号分隔)",
+      "type": "string",
+      "default": "subprocess, socket, ctypes, psutil, paramiko",
+      "hint": "非管理员不注入，且代码中导入会被拦截"
     }
   }
   
