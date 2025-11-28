@@ -65,6 +65,12 @@
       "default": "localhost",
       "hint": "本地路由发送时使用的主机IP地址，默认为localhost。如需支持Docker或跨网络访问，请填写局域网IP地址（如192.168.1.100）"
     },
+    "allow_all_users": {
+      "description": "允许所有用户调用插件工具",
+      "type": "bool",
+      "default": false,
+      "hint": "启用后，非管理员也可以调用代码执行工具。存在安全风险，请谨慎开启。"
+    },
     "enable_error_analysis": {
       "description": "启用错误代码分析",
       "type": "bool",

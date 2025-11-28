@@ -38,6 +38,7 @@ class CodeExecutorPlugin(Star):
         self.enable_local_route_sending = self.config.get("enable_local_route_sending", False)
         self.lagrange_host = self.config.get("lagrange_host", "127.0.0.1")
         self.local_route_host = self.config.get("local_route_host", "localhost")
+        self.allow_all_users = self.config.get("allow_all_users", False)
         
         # 错误分析相关配置
         self.enable_error_analysis = self.config.get("enable_error_analysis", False)
@@ -383,7 +384,7 @@ class CodeExecutorPlugin(Star):
 
         '''
         logger.info(f"角色{event.role}")
-        if event.role != "admin":
+        if not self.allow_all_users and event.role != "admin":
             await event.send(MessageChain().message("❌ 你没有权限使用此功能！"))
             return "❌ 权限验证失败：用户不是管理员，无权限运行代码。请联系管理员获取权限。操作已终止，无需重复尝试。"
         logger.info(f"收到任务: {description or '无描述'}")
