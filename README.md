@@ -1,6 +1,6 @@
 # AstrBot代码执行器插件 (Super Code Executor) - 全能小狐狸汐林
 
-![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg) ![Python Version](https://img.shields.io/badge/python-3.10%2B-orange.svg) ![Plugin Version](https://img.shields.io/badge/version-2.4.0-brightgreen) ![Framework](https://img.shields.io/badge/framework-AstrBot-D72C4D)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg) ![Python Version](https://img.shields.io/badge/python-3.10%2B-orange.svg) ![Plugin Version](https://img.shields.io/badge/version-2.5.0-brightgreen) ![Framework](https://img.shields.io/badge/framework-AstrBot-D72C4D)
 
 ⚠️⚠️⚠️ **安全警告** ⚠️⚠️⚠️
 
@@ -290,9 +290,9 @@ CREATE TABLE execution_history (
 
 ---
 
-**版本**: 2.3.0  
+**版本**: 2.5.0  
 **作者**: Xican  
-**更新日期**: 2025年8月3日
+**更新日期**: 2025年10月26日
 
 ## 更新日志
 

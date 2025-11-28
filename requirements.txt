@@ -10,7 +10,7 @@ statsmodels
 requests
 aiohttp
 beautifulsoup4
-
+fastapi
 # 数学和符号计算
 sympy
 
