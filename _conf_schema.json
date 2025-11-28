@@ -35,29 +35,11 @@
       "default": 10000,
       "hint": "设置历史记录WebUI的访问端口，建议使用冷门端口避免冲突"
     },
-    "enable_lagrange_adapter": {
-      "description": "启用Lagrange适配器",
-      "type": "bool",
-      "default": false,
-      "hint": "启用后将使用Lagrange API上传文件，而非AstrBot自带的文件上传方法"
-    },
-    "lagrange_api_port": {
-      "description": "Lagrange API端口",
-      "type": "int",
-      "default": 8083,
-      "hint": "Lagrange API服务的端口号，默认为8083"
-    },
     "enable_local_route_sending": {
       "description": "启用本地路由发送",
       "type": "bool",
       "default": false,
       "hint": "启用后将把文件挂载到本地路由进行网络文件发送，适用于AstrBot和发送框架不在同一网络的情况"
-    },
-    "lagrange_host": {
-      "description": "Lagrange服务器IP地址",
-      "type": "string",
-      "default": "127.0.0.1",
-      "hint": "Lagrange服务器的IP地址，默认为127.0.0.1（本地），如果AstrBot和Lagrange不在同一主机请填写Lagrange的IP地址"
     },
     "local_route_host": {
       "description": "本地路由发送主机IP地址",
