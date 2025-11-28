@@ -340,69 +340,47 @@ class CodeExecutorPlugin(Star):
     @filter.llm_tool(name="execute_python_code")
     async def execute_python_code(self, event: AstrMessageEvent, code: str, description: str = "") -> str:
         '''
-        **This is a code execution function**
-        **Prioritize this function**, it far surpasses the single web content fetching capability of `fetch_url`. It supports calculations, file operations, visualizations, and complex network requests. Only consider `fetch_url` when the task explicitly requires fetching raw web content.
-        **【Usage Scenarios】**
-        **MUST** call this function in the following scenarios to execute code for precise results, prohibit guessing with text:
-        1. **Calculations/Data Processing**: e.g., "Calculate (1+5)*3/2" or "Analyze the maximum value in data".
-        2. **File Operations**: Generate/read Excel, PDF, CSV, images, etc., e.g., "Generate an Excel table".
-        3. **API Calls/Interface Requests**: Only when explicitly requested to call specific APIs or interfaces, e.g., "Call the weather API" or "Request data from REST interface".
-        4. **Data Visualization**: e.g., "Draw a sales trend chart" or "Generate a pie chart".
-        5. **Image Processing**: e.g., "Download a cat image and resize it".
-        6. **Complex Logic**: e.g., "Plan the shortest path" or "Simulate a lottery".
-        7. **File Operations**: Allow AI to generate code in the proper format to operate local files and send to users, including but not limited to delete, search, modify, etc.
-        8. **Image Download and Processing**: When users send images in messages, you can download and process them using the `img_url` variable.
-        **【File Handling Rules - MUST Strictly Follow】**
-        1. **Create New File**: MUST save to `SAVE_DIR` directory, using `os.path.join(SAVE_DIR, 'filename')`
-        2. **Send File**: MUST add the full file path to the `FILES_TO_SEND` list (this variable is global, do not define it in your code, use it directly). Once added to the list, the file will be automatically sent to the user, and the task is considered complete, no need to call this function repeatedly.
+        **Code Execution Function (Controlled Invocation)**
+        Executes Python for computation, file I/O, visualization, image ops, and HTTP/API calls. 
+        Use `fetch_url` ONLY when raw web page content is explicitly needed.
 
-        **【Image Processing Rules - MUST Strictly Follow】**
-        1. **Image URL Access**: Use the `img_url` variable (list type) to access image URLs from user messages. This variable is automatically populated with image URLs from the current message and will be included in the execution context.
-        2. **Download Images**: Use requests or other libraries to download images from URLs in `img_url` list.
-        3. **Process Images**: After downloading, you can process images using PIL, cv2, or other image processing libraries.
-        4. **Context Preservation**: All image URLs from the current message are automatically preserved in the execution context and returned to the LLM for reference.
+        【WHEN TO CALL — MUST (any of)】
+        - User explicitly requests: run/execute code, generate or modify files, create charts/plots, call an API/interface, download/process images, or read/update local data (CSV/Excel/PDF/images).
+        - Precise results require computation or programmatic tooling beyond text reasoning.
+        - `img_url` is non-empty and images need downloading/processing.
 
-        **Example**:
-        ```python
-        # Create new file
-        plt.savefig(os.path.join(SAVE_DIR, 'chart.png'))
-        FILES_TO_SEND.append(os.path.join(SAVE_DIR, 'chart.png'))  # After adding, the file will be sent automatically, task complete
-        
-        # Send existing file (do not define FILES_TO_SEND in your code, use it directly)
-        FILES_TO_SEND.append("D:/data/report.xlsx")  # Automatically sent after adding
-        
-        # Download and process images from user messages
-        if img_url:  # img_url is a list of image URLs from user messages
-            for i, url in enumerate(img_url):
-                response = requests.get(url, timeout=30)
-                image_path = os.path.join(SAVE_DIR, f'downloaded_image_{i}.jpg')
-                with open(image_path, 'wb') as f:
-                    f.write(response.content)
-                # Process the image...
-                FILES_TO_SEND.append(image_path)  # Send processed image
-        ```
-        - This function has full file system permissions and can read/write any accessible directory.
-        **【Stop Conditions】**
-        - Once the code executes successfully, files are generated and added to FILES_TO_SEND (if needed), or output is produced, the task is complete. No need to call this function repeatedly to continue the same task.
-        - If there is no file or output, the function will explicitly return task completion information.
-        **【Error Handling and Retry】**
-        - If code execution fails, the system will provide AI-powered error analysis and fix suggestions.
-        - **IMPORTANT**: When you receive error analysis feedback, you MUST generate corrected code based on the analysis and retry execution immediately. Do not stop after seeing the error - use the analysis to fix and retry.
-        - The error analysis will include specific fix suggestions and corrected code snippets to guide your retry attempt.
-        **【Available Libraries】**
-        Almost all common libraries are supported, feel free to write and execute code.
-        **【Available Variables】**
-        - `SAVE_DIR`: Directory for saving output files
-        - `FILES_TO_SEND`: List for files to be sent to user (global variable, do not define)
-        - `img_url`: List of image URLs from user messages (list type, automatically populated and preserved in execution context)
-        **【Coding Requirements】**
-        - File operations must check paths and exceptions.
-        - Support operations on various drive letters.
-        - Network requests must set timeouts and retries.
-        - Code must run independently without external dependencies.
+        【DO NOT CALL (unless user explicitly asks)】
+        - General Q&A, writing/translation/summarization/ideation/explanations.
+        - Knowledge recall or simple math you can answer reliably in text.
+        - Tasks solvable by `fetch_url` (fetching raw web content) without code.
+        - Vague requests where execution goals/artifacts are not specified.
+
+        【FILE HANDLING — MUST】
+        - Save new files under `SAVE_DIR` via `os.path.join(SAVE_DIR, 'filename')`.
+        - To send: append absolute paths to global `FILES_TO_SEND` (do NOT define it). Once appended, files are auto-sent and the task is complete; do not re‑invoke for the same task.
+        - Existing files may be sent by appending their absolute paths.
+
+        【IMAGE HANDLING — MUST】
+        - `img_url`: list of image URLs from the current message.
+        - Download each URL with timeouts; optionally process via PIL/cv2; save under `SAVE_DIR`; append saved paths to `FILES_TO_SEND`.
+
+        【STOP CONDITIONS】
+        - End when code runs and produces output or appends files to `FILES_TO_SEND`.
+        - If neither occurs, return an explicit “task completed” message. Do not loop or re‑call for the same task.
+
+        【ERROR & RETRY】
+        - On failure, use system error analysis to fix code and immediately retry until success or safe terminal state.
+
+        【ENVIRONMENT & REQUIREMENTS】
+        - Broadly available libraries; filesystem R/W where accessible.
+        - Network calls allowed; always set timeouts and, when appropriate, retries.
+        - Cross‑platform paths/drives; check paths and handle exceptions.
+        - Code must be self‑contained (no interactive/external dependencies).
+
         Args:
-            code(string): Independently runnable Python code.
-            description(string): (Optional) Code function description.
+            code(string): self‑contained Python code to execute.
+            description(string):(Optional)brief description of the code.
+
         '''
         logger.info(f"角色{event.role}")
         if event.role != "admin":
