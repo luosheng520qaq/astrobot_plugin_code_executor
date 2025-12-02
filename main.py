@@ -345,8 +345,10 @@ class CodeExecutorPlugin(Star):
         - Vague requests where execution goals/artifacts are not specified.
 
         【FILE HANDLING — MUST】
-        - Save new files under `SAVE_DIR` via `os.path.join(SAVE_DIR, 'filename')`.
-        - To send: append absolute paths to global `FILES_TO_SEND` (do NOT define it). Once appended, files are auto-sent and the task is complete; do not re‑invoke for the same task.
+        - Save all new files under `SAVE_DIR` via `os.path.join(SAVE_DIR, 'filename')`.
+        - All downloads/saves (web files, PDFs, office docs, archives, binary streams) MUST write to `SAVE_DIR`. Do NOT write to the working directory or other absolute paths unless the user explicitly provides a destination.
+        - When no page count/range is specified for multi‑page content (e.g., PDF), download/save the entire file to `SAVE_DIR` and append the saved absolute path to `FILES_TO_SEND`.
+        - To send: append absolute paths to global `FILES_TO_SEND` (do NOT define it). Once appended, files are auto‑sent and the task is complete; do not re‑invoke for the same task.
         - Existing files may be sent by appending their absolute paths.
 
         【IMAGE HANDLING — MUST】
