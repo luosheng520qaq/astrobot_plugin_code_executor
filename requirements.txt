@@ -50,4 +50,4 @@ fastapi
 uvicorn[standard]
 jinja2
 aiosqlite
-base64
+pybase64
