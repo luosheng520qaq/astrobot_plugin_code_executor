@@ -4,7 +4,7 @@ import io
 import time
 import traceback
 import os
-import base64
+import pybase64 as base64
 from datetime import datetime
 from typing import Dict, Any, List
 import re
