@@ -21,7 +21,7 @@ from .database import ExecutionHistoryDB
 from .webui import CodeExecutorWebUI
 
 
-@register("code_executor", "Xican", "代码执行器 - 全能小狐狸汐林", "2.2.5")
+@register("code_executor", "Xican", "代码执行器 - 全能小狐狸汐林", "2.6.0")
 class CodeExecutorPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
@@ -348,6 +348,8 @@ class CodeExecutorPlugin(Star):
         - Save all new files under `SAVE_DIR` via `os.path.join(SAVE_DIR, 'filename')`.
         - All downloads/saves (web files, PDFs, office docs, archives, binary streams) MUST write to `SAVE_DIR`. Do NOT write to the working directory or other absolute paths unless the user explicitly provides a destination.
         - When no page count/range is specified for multi‑page content (e.g., PDF), download/save the entire file to `SAVE_DIR` and append the saved absolute path to `FILES_TO_SEND`.
+        - `SAVE_DIR` is provided by the external environment and is read‑only for your code. Do NOT construct, redefine, or override it (do not write `SAVE_DIR = ...`).
+        - Build paths only via `os.path.join(SAVE_DIR, 'filename')`; do NOT change working directory or write to other absolute paths unless explicitly instructed.
         - To send: append absolute paths to global `FILES_TO_SEND` (do NOT define it). Once appended, files are auto‑sent and the task is complete; do not re‑invoke for the same task.
         - Existing files may be sent by appending their absolute paths.
 

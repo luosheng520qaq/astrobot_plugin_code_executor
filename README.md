@@ -1,6 +1,6 @@
 # AstrBot代码执行器插件 (Super Code Executor) - 全能小狐狸汐林
 
-![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg) ![Python Version](https://img.shields.io/badge/python-3.10%2B-orange.svg) ![Plugin Version](https://img.shields.io/badge/version-2.5.0-brightgreen) ![Framework](https://img.shields.io/badge/framework-AstrBot-D72C4D)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg) ![Python Version](https://img.shields.io/badge/python-3.10%2B-orange.svg) ![Plugin Version](https://img.shields.io/badge/version-2.6.0-brightgreen) ![Framework](https://img.shields.io/badge/framework-AstrBot-D72C4D)
 
 ⚠️⚠️⚠️ **安全警告** ⚠️⚠️⚠️
 
@@ -95,17 +95,21 @@ pip install fastapi uvicorn[standard] jinja2 aiosqlite
 
 ```json
 {
-  "timeout_seconds": 90,
-  "max_output_length": 3000,
+  "timeout_seconds": 10,
+  "max_output_length": 2000,
   "enable_plots": true,
-  "output_directory": "D:/ai_outputs",
+  "output_directory": "",
   "enable_webui": false,
-  "webui_port": 22334,
-  "enable_lagrange_adapter": false,
-  "lagrange_api_port": 8083,
+  "webui_port": 10000,
   "enable_local_route_sending": false,
-  "lagrange_host": "127.0.0.1",
-  "local_route_host": "localhost"
+  "local_route_host": "localhost",
+  "allow_all_users": false,
+  "enable_error_analysis": false,
+  "error_analysis_provider_id": "",
+  "error_analysis_model": "",
+  "non_admin_safety_enabled": true,
+  "restricted_keywords": "os.system, subprocess, popen, shell=true, eval(, exec(, shutil.rmtree, os.remove(, os.rmdir(",
+  "restricted_libraries": "subprocess, socket, ctypes, psutil, paramiko"
 }
 ```
 
@@ -115,25 +119,17 @@ pip install fastapi uvicorn[standard] jinja2 aiosqlite
 - `output_directory`：默认工作目录（留空则使用插件内置路径，Docker用户可尝试填写 /Astrbot/data 或 /data）
 - `enable_webui`：是否启用WebUI服务（默认关闭，避免端口冲突）
 - `webui_port`：WebUI服务端口（可自定义，避免端口冲突）
-- `enable_lagrange_adapter`：启用Lagrange适配器（默认关闭）
-- `lagrange_api_port`：Lagrange API服务端口（默认8083）
-- `enable_local_route_sending`：启用本地路由发送（默认关闭，适用于AstrBot和发送框架不在同一网络的情况）
-- `lagrange_host`：Lagrange服务器IP地址（默认127.0.0.1，如果AstrBot和Lagrange不在同一主机请填写Lagrange的IP地址）
+- `enable_local_route_sending`：启用本地路由发送（适用于AstrBot和发送框架不在同一网络的情况）
 - `local_route_host`：本地路由发送主机IP地址（默认localhost，如需支持Docker或跨网络访问，请填写局域网IP地址）
+- `allow_all_users`：允许所有用户调用代码执行工具（存在安全风险，请谨慎开启）
+- `enable_error_analysis`：启用错误代码分析
+- `error_analysis_provider_id`：错误分析辅助模型提供商ID（留空使用当前默认提供商）
+- `error_analysis_model`：错误分析使用的模型名称（留空使用提供商默认模型）
+- `non_admin_safety_enabled`：非管理员安全拦截开关（默认开启）
+- `restricted_keywords`：代码执行黑名单关键词（逗号或换行分隔，命中即拦截）
+- `restricted_libraries`：代码执行黑名单库（逗号或换行分隔，导入即拦截）
 
 **部分行为可通过源码 `__init__` 方法调整。**
-
-## Lagrange适配器配置
-
-当使用Lagrange作为机器人框架时，可启用Lagrange适配器来优化文件上传功能：
-
-1. 设置 `enable_lagrange_adapter` 为 `true`
-2. 确保Lagrange API服务运行在指定端口（默认8083）
-3. 插件将自动根据聊天类型选择合适的上传接口：
-   - **私聊**：调用 `/upload_private_file` 接口
-   - **群聊**：调用 `/upload_group_file` 接口
-
-**注意**：Lagrange适配器仅在启用时生效，默认情况下使用AstrBot原生文件发送方式。
 
 ---
 
@@ -290,11 +286,16 @@ CREATE TABLE execution_history (
 
 ---
 
-**版本**: 2.5.0  
+**版本**: 2.6.0  
 **作者**: Xican  
-**更新日期**: 2025年10月26日
+**更新日期**: 2026年01月19日
 
 ## 更新日志
+
+### v2.6.0 - 配置说明对齐与版本统一
+- 统一版本号到 2.6.0
+- 配置说明与 `_conf_schema.json` 保持一致
+- 补充 allow_all_users 与黑名单相关配置说明
 
 ### v2.5.0 - 修复图表中文显示问题
 - 解决图表中中文显示乱码问题
