@@ -46,8 +46,6 @@ nltk
 jieba
 
 # WebUI相关
-fastapi
 uvicorn[standard]
 jinja2
 aiosqlite
-base64
